@@ -21,4 +21,6 @@ Operation queues（操作队列）是与dispatch queues非常类似的Objective-
 
 ### Dispatch Queues
 
+Dispatch queues是一种基于C语言的机制，能够用来执行自定义任务。dispatch queue可以串行或并行执行任务，但始终按先进先出的顺序执行（换句话说，dispatch queue总是按照任务被添加到队列的顺序启动任务，并以相同顺序推出任务）。serial dispatch queue（串行调度队列）一次一次只运行一个任务，直到该任务完成之后才执行下一个新任务。相比之下，concurrent dispatch queue（并行调度队列）会尽可能多地运行任务，而无需等待正在运行的任务执行完毕。
+
 
