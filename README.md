@@ -37,6 +37,20 @@ Dispatch queues还有其他益处：
 
 Dispatch queues是Grand Central Dispatch技术的一部分，是C语言运行时的一部分。有关在应用程序中使用dispatch queue的更多信息，请参看[iOS并发编程 -- Dispatch Queues](https://www.jianshu.com/p/4533e653d49f)。有关block及其优点的更多信息，请参看[Block编程指南](https://www.jianshu.com/p/c1c03ae5a6a5)。
 
+### Dispatch Sources
+
+Dispatch sources（调度源）是一种基于C语言的机制，其用于异步处理特定类型的系统事件。dispatch source封装了有关特定类型系统事件的信息，并在发生该事件时将特定block对象或者函数提交给dispatch queue。可以使用dispatch source来监视以下类型的系统事件：
+- Timers
+- Signal handles
+- Descriptor-related events
+- Process-related events
+- Mach port events
+- Custom events that you trigger
+
+Dispatch sources是Grand Central Dispatch技术的一部分。有关使用dispatch source在应用程序中接收事件的信息，请参看[iOS并发编程 -- Dispatch sources](https://www.jianshu.com/p/6508aaf2df4e)。
+
+### Operation Queues
+
 
 
 
