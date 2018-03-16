@@ -51,7 +51,7 @@ Dispatch sources是Grand Central Dispatch技术的一部分。有关使用dispat
 
 ### Operation Queues
 
-Operation Queue（操作队列）是concurrent dispatch queue的Cocoa类似技术，由`NSOperationQueue`实现。dispatch queue总是按照先进先出的顺序执行任务，而operation queue在确定任务的执行顺序时会考虑其他因素。这些因素中最主要的是给定的任务是否取决于其他任务的完成。可以在定义任务时配置依赖关系，并可以使用它们为任务创建复杂的执行顺序图。
+Operation Queue（操作队列）是concurrent dispatch queue的Cocoa同等技术，由`NSOperationQueue`实现。dispatch queue总是按照先进先出的顺序执行任务，而operation queue在确定任务的执行顺序时会考虑其他因素。这些因素中最主要的是给定的任务是否取决于其他任务的完成。可以在定义任务时配置依赖关系，并可以使用它们为任务创建复杂的执行顺序图。
 
 提交给operation queue的任务必须是`NSOperation`类的实例。operation对象是一个Objective-C对象，其封装了想要执行的任务以及执行它所需要的任何数据。由于`NSOperation`类本质上是一个抽象基类，因此通常会定义自定义子类来执行任务。但是，Foundation框架确实包含了一些可以创建和使用的具体子类来执行任务。
 
@@ -96,5 +96,31 @@ Operation对象会生成键-值观观察（KVO）通知，这是监视任务进�
 - **尽可能依赖系统框架。** 实现并发的最好方法是利用系统框架提供的内置并发。许多框架在内部使用线程和其他技术来实现并发行为。在定义任务时，看看现有的框架是否定义了一个功能或方法能够完全实现需要的功能或方法并可以并行执行。使用该API可以节省我们的工作量，并且更有可能为我们提供最大的并发可能性。
 
 ## 性能影响
+
+Operation queues，dispatch queues，和dispatch sources使我们可以更轻松地同时执行更多代码。但是，这些技术并不能保证提高应用程序的效率或响应速度。我们仍然有责任以满足需求的方式来使用队列，并不该对应用程序的其他资源施加过度负担。例如，虽然可以创建10000个operation对象并将它们提交到operation queue中，但这样做会导致应用程序可能分配一个巨大的内存量，这可能会导致分页并降低性能。
+
+在代码中引入任何数量的并发之前（无论使用队列还是线程），都应该收集一组反映应用程序当前性能的基准指标。在执行更改后，应该收集其他指标并将其与基准进行比较，以查看应用程序的整体效率是否有所提高。如果并发性的引入使应用程序运行效率降低或响应速度变慢，则应使用可用的性能检测工具来查找可能的原因。
+
+有关性能和可用性能工具的介绍，以及指向更高级性能相关主体的链接，请参看[Performance Overview](https://developer.apple.com/library/content/documentation/Performance/Conceptual/PerformanceOverview/Introduction/Introduction.html#//apple_ref/doc/uid/TP40001410)。
+
+## 并发和其他技术
+
+将代码分解为模块化任务是尝试和提高应用程序并发量的最佳方式。但是，这种设计方法可能无法满足每种情况下每个应用程序的需求。根据我们的任务，可能还有其他选项可用提高应用程序的整体并发性。本节概述了作为设计的一部分可以考虑使用的其他一些技术。
+
+### OpenCL和并发
+
+在OS X中，Open Computing Language （OpenCL）是一种基于标准的技术，用于在计算机的图形处理器上执行通用计算。如果有一个明确的应用于大型数据集的计算集，则OpenCL是一种很好的技术。例如，可以使用OpenCL对图像的像素执行滤波计算，或使用使用它一次执行对多个值的复杂数学计算。换句话说，OpenCL更适合于可以并行操作数据的问题集。
+
+尽管OpenCL适合执行大规模数据并行操作，但不适合更通用的计算。准备并将数据和所需的工作内核传输到图形卡以使其可以通过GPU进行操作需要花费大量精力。同样，检索OpenCL生成的任何结果也需要花费大量精力。因此，与系统交互的任何任务通常都不推荐使用OpenCL。例如，不会使用OpenCL处理来自文件或网络流的数据。相反，使用OpenCL执行的工作必须更加独立，才能将其转移到图形处理器并独立计算。
+
+有关OpenCL的更多信息以及如何使用它，请参看Mac版[OpenCL Programming Guide](https://developer.apple.com/library/content/documentation/Performance/Conceptual/OpenCL_MacProgGuide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008312)。
+
+### 何时使用线程
+
+尽管operation queue和dispatch queue是并行执行任务的首选方式，但它们不是万能的。根据我们的应用程序，我们有时可能仍然需要创建自定义线程。如果确实需要创建自定义线程，那么应该努力创建尽可能少的线程，并且应该仅将这些线程用于无法以其他方式实现的特定任务。
+
+线程仍然是必须实时运行的代码的好方式。Dispatch queue尽可能快地运行它们的任务，但它们不能解决实时限制。如果需要在后台运行的代码具有更多可预测的行为，那么线程仍然可以提供更好的选择。
+
+与任何线程编程一样，应该总是明智地使用线程，并且只有在绝对有必要时才使用线程。有关线程组件的更多信息以及如何使用它们，请参看[Threading Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/Introduction/Introduction.html#//apple_ref/doc/uid/10000057i)。
 
 
