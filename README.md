@@ -51,7 +51,15 @@ Dispatch sources是Grand Central Dispatch技术的一部分。有关使用dispat
 
 ### Operation Queues
 
-Operation Queue是concurrent dispatch queue的Cocoa类似技术，由`NSOperationQueue`实现。dispatch queue总是按照先进先出的顺序执行任务，而operation queue在确定任务的执行顺序时会考虑其他因素。
+Operation Queue（操作队列）是concurrent dispatch queue的Cocoa类似技术，由`NSOperationQueue`实现。dispatch queue总是按照先进先出的顺序执行任务，而operation queue在确定任务的执行顺序时会考虑其他因素。这些因素中最主要的是给定的任务是否取决于其他任务的完成。可以在定义任务时配置依赖关系，并可以使用它们为任务创建复杂的执行顺序图。
+
+提交给operation queue的任务必须是`NSOperation`类的实例。operation对象是一个Objective-C对象，其封装了想要执行的任务以及执行它所需要的任何数据。由于`NSOperation`类本质上是一个抽象基类，因此通常会定义自定义子类来执行任务。但是，Foundation框架确实包含了一些可以创建和使用的具体子类来执行任务。
+
+Operation对象会生成键-值观观察（KVO）通知，这是监视任务进度的有效方法。**虽然operation queue总是并行执行操作，但可以使用依赖关系来确保在需要时它们被串行执行。
+
+有关如何使用operation queue的更多信息以及如何自定义operation对象的更多信息，请参看[iOS并发编程 -- Operation Queues](https://www.jianshu.com/p/65ab102cac60)。
+
+## 异步设计技术
 
 
 
