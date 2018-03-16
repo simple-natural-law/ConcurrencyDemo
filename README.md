@@ -1,4 +1,4 @@
-# 并发编程 -- 并发性和应用程序设计
+# iOS并发编程 -- 并发性和应用程序设计
 
 在计算机发展初期，计算机可以执行的每单位时间的最大工作量取决于CPU的频率。但随着技术进步和处理器设计变得更加紧凑，热量和其他物理约束开始限制处理器的最大频率。因此，芯片制造商寻找其他方法来提高芯片的整体性能。他们的解决方案是增加每个芯片上处理器内核的数量。通过增加内核数量，单个芯片每秒可以执行更多指令，而不会增加CPU速率或者改变芯片尺寸或热特性。唯一的问题是如何利用额外的内核。
 
@@ -122,5 +122,22 @@ Operation queues，dispatch queues，和dispatch sources使我们可以更轻松
 线程仍然是必须实时运行的代码的好方式。Dispatch queue尽可能快地运行它们的任务，但它们不能解决实时限制。如果需要在后台运行的代码具有更多可预测的行为，那么线程仍然可以提供更好的选择。
 
 与任何线程编程一样，应该总是明智地使用线程，并且只有在绝对有必要时才使用线程。有关线程组件的更多信息以及如何使用它们，请参看[Threading Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/Introduction/Introduction.html#//apple_ref/doc/uid/10000057i)。
+
+
+# iOS并发编程 -- Operation Queues
+
+Cocoa operation以一种面向对象的方式来封装需要异步执行的工作，operation被设计为与operation queue一起使用或者单独使用。因为它们基于Objective-C，所以OS X和iOS中基于Cocoa的应用程序最常使用它们。
+
+## 关于Operation对象
+
+operation对象是`NSOperation`类的实例，用于封装希望应用程序执行的工作。`NSOperation`类本身是一个抽象类，为了做任何有用的工作，其必须被分类。尽管是抽象的，但该类确实提供了大量的基础设施来尽量减少我们在自己的子类中要完成的工作量。另外，Foundation框架提供了两个具体的子类，我们可以使用现有代码使用它们。下表列出了这些类以及如何使用每个类的描述。
+
+| Class | Description |
+|--------|--------------|
+| NSInvocationOperation | 使用该类基于应用程序中的对象和方法选择器来创建operation对象。当存在一个执行所需任务的方法时，则可以使用此类。因为它不需要子类化，所以可以使用此类以更动态的方式创建operation对象。<br>有关如何使用此类的信息，请参看[创建NSInvocationOperation对象](jump)。
+| NSBlockOperation | 使用该类并行执行一个或多个block对象。因为它可以执行多个block，所以block operation对象使用一组语义来操作。只有当所有关联的block已经完成执行时，操作本身才算完成。<br>有关如何使用此类的信息，请参看[创建NSBlockOperation对象](jump)。该类在OS X v0.6及更高版本中提供。有关block的更多信息，请参看[Block编程指南](https://www.jianshu.com/p/c1c03ae5a6a5)。 |
+| NSOperation | 该类是用于自定义operation对象的基类。通过子类化NSOperation，我们可以完全控制自己操作的实现，包括更改操作执行的默认方式并报告其状态的功能。<br>有关如何自定义operation对象的信息，请参看[自定义operation对象](jump)。 |
+
+
 
 
