@@ -29,5 +29,15 @@ Dispatch queues还有其他益处：
 - 它们提供了协调组装的速度。
 - 它们的内存效率要高得多（因为线程栈并不存储于应用程序的内存中）。
 - 它们不会陷入负载下的内核。
-- 将任务异步调度到dispatch queue不会造成队列死锁。
+- 将任务异步调度到dispatch queue不会死锁队列。
+- 它们的伸缩性更强。
+- 串行调度队列为锁和其他同步原函数提供了更高效的替代方案。
+
+提交给dispatch queue的任务必须封装在函数或者block对象中。block对象是OS X v10.6和iOS 4。0中引入的一种C语言特性，它在概念上类似于函数指针，但有一些额外的好处。通常在其他函数或方法中定义block，以便可以从该函数或方法访问其他变量。block也能被移出栈区并复制到堆区，这是将它们提交给dispatch queue时所发生的情况。所有这些语义都可以用较少的代码实现非常动态的任务。
+
+Dispatch queues是Grand Central Dispatch技术的一部分，是C语言运行时的一部分。有关在应用程序中使用dispatch queue的更多信息，请参看[iOS并发编程 -- Dispatch Queues](https://www.jianshu.com/p/4533e653d49f)。有关block及其优点的更多信息，请参看[Block编程指南](https://www.jianshu.com/p/c1c03ae5a6a5)。
+
+
+
+
 
