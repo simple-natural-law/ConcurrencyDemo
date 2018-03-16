@@ -51,7 +51,7 @@ Dispatch sources是Grand Central Dispatch技术的一部分。有关使用dispat
 
 ### Operation Queues
 
-
+Operation Queue是concurrent dispatch queue的Cocoa类似技术，由`NSOperationQueue`实现。dispatch queue总是按照先进先出的顺序执行任务，而operation queue在确定任务的执行顺序时会考虑其他因素。
 
 
 
