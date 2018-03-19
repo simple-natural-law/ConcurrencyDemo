@@ -281,5 +281,120 @@ NSBlockOperation* theOp = [NSBlockOperation blockOperationWithBlock: ^{
 
 本节的余下部分显示了MyOperation类的示例实现，其演示了实现并发操作所需的基本代码。MyOperation类只是在它创建的单独线程上执行自己的`main`方法。`main`方法执行的实际工作师无关紧要的。示例的要点是要演示定义并发操作时需要提供的基础架构。
 
+以下代码显示了MyOperation类的接口和部分实现。MyOperation类的`isConcurrent`、`isExecuting`和`isFinished`方法的实现相对简单。`isConcurrent`方法应该简单地返回`YES`来表明这是一个并发操作。`isExecuting`和`isFinished`方法只是返回存储在类本身的实例变量中的值。
+```
+@interface MyOperation : NSOperation {
+BOOL        executing;
+BOOL        finished;
+}
+- (void)completeOperation;
+@end
+
+@implementation MyOperation
+- (id)init {
+    self = [super init];
+    if (self) {
+        executing = NO;
+        finished = NO;
+    }
+    return self;
+}
+
+- (BOOL)isConcurrent {
+    return YES;
+}
+
+- (BOOL)isExecuting {
+    return executing;
+}
+
+- (BOOL)isFinished {
+    return finished;
+}
+@end
+```
+以下代码显示了MyOperation类的`start`方法。该方法的实现很少，以便演示绝对必须执行的任务。在这种情况下，该方法只需启动一个新线程并配置该线程调用`main`方法。该方法还更新`executing`成员变量，并为`isExecuting`键路径生成KVO通知以反映该值的变化。
+```
+- (void)start {
+    // Always check for cancellation before launching the task.
+    if ([self isCancelled])
+    {
+        // Must move the operation to the finished state if it is canceled.
+        [self willChangeValueForKey:@"isFinished"];
+        finished = YES;
+        [self didChangeValueForKey:@"isFinished"];
+        return;
+    }
+
+    // If the operation is not canceled, begin executing the task.
+    [self willChangeValueForKey:@"isExecuting"];
+    [NSThread detachNewThreadSelector:@selector(main) toTarget:self withObject:nil];
+    executing = YES;
+    [self didChangeValueForKey:@"isExecuting"];
+}
+```
+以下代码显示了MyOperation类的其余实现。如上代码所示，`main`方法是新线程的入口点。它执行与操作对象关联的任务，并在该任务最终完成时调用自定义`completeOperation`方法，`completeOperation`方法然后为`isExecuting`和`isFinished`键路径生成所需的KVO通知，以反映操作状态的变化。
+```
+- (void)main {
+    @try {
+
+        // Do the main work of the operation here.
+
+        [self completeOperation];
+    }
+    @catch(...) {
+        // Do not rethrow exceptions.
+    }
+}
+
+- (void)completeOperation {
+    [self willChangeValueForKey:@"isFinished"];
+    [self willChangeValueForKey:@"isExecuting"];
+
+    executing = NO;
+    finished = YES;
+
+    [self didChangeValueForKey:@"isExecuting"];
+    [self didChangeValueForKey:@"isFinished"];
+}
+```
+即使操作被取消，也应该始终通知KVO观察者操作对象现在已完成其工作。当操作对象依赖于其他操作对象的完成时，它会监听这些对象的`isFinished`键路径。只有当所有的对象都报告它们已经完成时，才会执行相关的操作信号，表明它已准备好运行。生成完成通知失败，可能会因此阻止应用程序中其他操作的执行。
+
+### 维护KVO合规性
+
+`NSOperation`类兼容了对以下键路径的键-值观察（KVO）：
+- isCancelled
+- isConcurrent
+- isExecuting
+- isReady
+- dependencies
+- queuePriority
+- completionBlock
+
+如果覆写`start`方法或者对`NSOperation`对象进行除了重写`main`方法之外的任何重要定制，则必须确保定制对象对这些键路径保持KVO兼容。当覆写`start`方法时，最应该考虑的键路径应该是`isExecuting`和`isFinished`，这些是重新实现该方法时最常受影响的键路径。
+
+如果要实现对自定义依赖项（并非其他操作对象）的支持，还可以重写`isReady`方法，并强制它返回`NO`，直到满足自定义依赖项为止。（如果要实现自定义依赖项，同时仍然支持由`NSOperation`类提供的默认依赖项管理系统，请确保在`isReady`方法调用`super`。）当操作对象的准备状态更改时，为`isReady`键路径生成KVO通知报告这些变化。除非重写`addDependency:`或者`removeDependency:`方法，否则不需要担心为依赖键路径生成KVO通知。
+
+虽然可以为`NSOperation`的其他键路径生成KVO通知，但不太可能需要我们这样做。如果需要取消某项操作，则只需要调用现有的`cancel`方法即可。同样，很少需要修改操作对象中的队列优先级信息。最后，除非操作对象能够动态更改其并发状态，否则不需要为`isConcurrent`键路径提供KVO通知。
+
+与键-值观察（KVO）有关的更多信息以及如何在自定义对象中支持它的更多信息，请参看[Key-Value Observing Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/KeyValueObserving/KeyValueObserving.html#//apple_ref/doc/uid/10000177i)。
+
+## 定制操作对象的执行行为
+
+操作对象的配置在创建它们之后但在将它们添加到队列之前发生。本节中描述的配置类型可以应用于所有操作对象，无论是使用自定义`NSOperation`对象还是使用现有的`NSOperation`子类。
+
+### 配置相互操作依赖
+
+依赖关系是一种序列化不同操作对象的执行的方式。依赖于其他操作的操作无法开始执行，直到它所依赖的所有操作都已完成执行。因此，可以使用依赖关系来在两个操作对象之间创建简单的一对一依赖关系或构建复杂的对象依赖关系图。
+
+要建立两个操作对象之间的依赖关系，可以使用`NSOperation`对象的`addDependency:`方法。此方法创建从当前操作对象到作为参数指定的目标操作对象的**单向**依赖关系。这种依赖意味着当前对象不能执行，直到目标操作对象完成执行。依赖关系也不限于同一队列中的操作。操作对象管理它们自己的依赖关系，因此在操作之间创建依赖关系并将它们全部添加到不同的队列是完全可以接受的。然而，有一件不可接受的事情是在操作之间创建循环依赖关系。
+
+当一个操作的所有依赖都已经完成时，操作对象通常会准备好执行。（如果自定义`isReady`方法的行为，则操作的准备就会根据我们设置的条件来确定。）如果操作对象位于队列中，则队列可以随时开始执行该操作。如果打算手动执行操作，则由我们自己来调用操作对象的`start`方法。
+
+> **重要**：应始终在执行操作或将它们添加到操作队列之前配置依赖关系，之后添加的依赖项可能无法阻止给定的操作对象的执行。
+
+依赖关系依赖于在对象的状态发生改变时每个操作对象发送适当的KVO通知。如果要自定义操作对象的行为，则可能需要在定义代码中生成对应的KVO通知，以避免导致依赖关系出现问题。
+
+### 更改一个操作的执行优先级
 
 
