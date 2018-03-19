@@ -157,6 +157,91 @@ operation旨在帮助提高应用程序中的并发水平。operation也是将�
 
 ## 创建NSInvocationOperation对象
 
+`NSInvocationOperation`类是`NSOperation`的具体子类，它在运行时会调用指定的关联对象的方法。使用此类可以避免为应用程序中的每个任务自定义大量的operation对象。特别是如果我们需要修改现有的应用程序并且已经拥有执行必要任务所需的对方和方法。当我们想要调用的方法可以根据具体情况而改变时，可以选择使用该类。例如，可以使用调用操作来执行基于用户输入动态选择的方法选择器。
 
+创建一个`NSInvocationOperation`对象的过程非常简单。可以创建并初始化类的新实例，将所需的对象和方法选择器传递给初始化方法。以下代码显示了自定义类中的两个方法，用于演示创建过程。`taskWithData:`方法创建一个新的调用对象并为其提供另一个方法的名称，该方法包含任务的实现。
+```
+- (NSOperation*)taskWithData:(id)data
+{
+    NSInvocationOperation* theOp = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(myTaskMethod:) object:data];
+
+    return theOp;
+}
+
+// This is the method that does the actual work of the task.
+- (void)myTaskMethod:(id)data
+{
+    // Perform the task.
+}
+@end
+```
+
+## 创建一个NSBlockOperation对象
+
+`NSBlockOperation`类是`NSOperation`的具体子类，充当一个或多个block对象的包装。此类为已经已经使用操作队列并且不想创建调度队列的应用程序提供面向对象的包装器。还可以使用block操作来利用操作依赖关系、KVO 以及可能不适用于调度队列的其他功能。
+
+在创建一个block操作时，通常在初始化时至少添加一个block，并在稍后根据需要添加更多block。当需要执行`NSBlockOperation`对象时，该操作对象将其所有block对象提交给默认优先级的并发调度队列（concurrent dispatch queue）。操作对象会等待所有block完成执行，当最后一个block完成执行时，操作对象将自身标记为已完成。因此，我们可以使用block操作来跟踪一组正在执行的block，就像使用线程联结合并多个线程的结果一样。区别在于，**因为block操作本身在单独的线程上运行，所以应用程序的其他线程可以在等待block操作完成的同时继续工作。**
+
+以下代码显示了如何创建一个`NSBlockOperation`对象的简单示例。该block本身没有参数并且没有返回结果。
+```
+NSBlockOperation* theOp = [NSBlockOperation blockOperationWithBlock: ^{
+
+    NSLog(@"Beginning operation.\n");
+    // Do some work.
+}];
+```
+创建block操作对象后，可以使用`addExecutionBlock:`方法向其添加更多block。如果需要连续执行block，则必须将它们直接提交到所需的调度队列。
+
+## 定义一个自定义操作对象
+
+如果block操作和invocation操作对象不能完全满足应用程序的需求，则可以直接子类化`NSOperation`并添加所需的任何行为。`NSOperation`类为所有操作对象提供了一个通用的继承点。该类还提供了大量的基础设施来处理依赖关系和KVO通知所需的大部分工作。但是，我们可能还需要补充现有的基础设施，以确保我们的操作正确。必须执行的额外工作量取决于我们是在执行非并发还是并发操作。
+
+定义非并发操作比定义并发操作简单得多。对于非并发操作，只需执行主要任务并对取消事件作出对应的响应。现有的类级别的基础设施为我们完成了所有其他工作。对于并发操作，必须用我们的自定义代码替换一些现有的基础架构。以下部分展示了如何实现这两种类型的对象。
+
+### 执行主要任务
+
+每个操作对象至少应该实现以下方法：
+- 自定义初始化方法。
+- `main`方法。
+
+我们需要一个自定义的初始化方法来将操作对象设置为已知状态，还需要自定义`main`方法来执行我们的任务。还可以根据需要实现其他方法，如下所示：
+- 计划在`main`方法的实现中调用的自定义方法。
+- 用于设置数据值和访问操作结果的访问器方法。
+- 允许我们归档和反归档操作对象的NSCoding协议方法。
+
+以下代码展示了一个自定义`NSOperation`子类的初始模版。（以下代码并未展示如何取消正在执行的操作，只展示了我们通常会使用的方法。有关如何取消操作的信息，请参看[响应取消事件](jump)。）此类的初始化方法将单个对象用作数据参数，并存储对操作对象的引用。在将结果返回给应用程序之前，`main`方法将处理该数据对象。
+```
+@interface MyNonConcurrentOperation : NSOperation
+
+@property id (strong) myData;
+
+-(id)initWithData:(id)data;
+
+@end
+
+@implementation MyNonConcurrentOperation
+
+- (id)initWithData:(id)data {
+    if (self = [super init])
+    myData = data;
+    return self;
+}
+
+-(void)main {
+    @try {
+        // Do some work on myData and report the results.
+    }
+    @catch(...) {
+        // Do not rethrow exceptions.
+    }
+}
+@end
+```
+
+有关如何实现`NSOperation`子类的详细示例，请参看[NSOperationSample](https://developer.apple.com/library/content/samplecode/NSOperationSample/Introduction/Intro.html#//apple_ref/doc/uid/DTS10004184)。
+
+### 响应取消事件
+
+在一个操作开始执行之后，
 
 
