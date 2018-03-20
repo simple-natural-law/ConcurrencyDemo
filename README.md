@@ -421,7 +421,7 @@ BOOL        finished;
 
 ### 管理操作对象中的内存
 
-以下部分描述操作对象中良好内存管理的关键元素。有关Objective-C程序内存关联的信息，请参看[Advanced Memory Management Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i)。
+以下部分描述操作对象中良好内存管理的关键因素。有关Objective-C程序内存关联的信息，请参看[Advanced Memory Management Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i)。
 
 #### 避免Per-Thread存储
 
@@ -546,3 +546,24 @@ NSOperationQueue* aQueue = [[NSOperationQueue alloc] init];
 ### 暂停和恢复队列
 
 如果想要暂时停止执行操作，则可以使用`setSuspended:`方法挂起响应的操作队列。暂停队列不会导致已执行的操作在其任务执行期间暂停。它只是阻止新的操作被安排执行。我们可能会暂停队列以响应用户请求暂停任何正在进行的工作，因为期望用户可能最终想要恢复该工作。
+
+# iOS并发编程 -- Dispatch Queues
+
+Grend Central Dispatch（GCD）调度队列是执行任务的强大工具。调度队列让我们可以与调用者异步或同步地执行任何代码块。可以使用调度队列来执行几乎所有用于在单独的线程上执行的任务。调度队列的优点是它们相应的线程代码更简单有效地执行这些任务。
+
+本文提供了有关调度队列的介绍，以及有关如何使用它们在应用程序中执行常规任务的信息。如果想用调度队列替换现有的线程代码，可以从[Migrating Away from Threads](https://developer.apple.com/library/content/documentation/General/Conceptual/ConcurrencyProgrammingGuide/ThreadMigration/ThreadMigration.html#//apple_ref/doc/uid/TP40008091-CH105-SW1)中找到有关如何执行此操作的一些其他提示。
+
+## 关于调度队列
+
+调度队列是一种在应用程序中异步并行执行任务的简单方法。任务只是应用程序需要执行的一些工作。例如，可以定义一个任务来执行一些计算，创建或修改数据结构，处理从文件读取的某些数据或任何数量的事物。通过将相应的代码放入函数或block对象中并将其添加到调度队列来定义任务。
+
+调度队列是一个类似于对象的结构，其用于管理向其提交的任务。所有的调度队列都是**先进先出**的数据结构。因此，添加到队列中的任务始终以与其被添加到队列的顺序来启动。GCD自动为我们提供了一些调度队列，但我们可以为特定目的创建其他调度队列。下表列出了可用于应用程序的调度队列的类型以及如何使用它们。
+
+| Type | Description |
+|-------|---------------|
+| Serial | 串行队列（也称为私有调度队列）按照任务被添加到队列中顺序每次执行一个任务。当前正在执行的任务运行在由调度队列管理的不同线程上（可能因任务而异）。串行队列通常用于同步对特定资源的访问。<br>可以根据需要创建尽可能多的串行队列，并且每个队列都可以与其他队列同时运行。换句话说，如果创建了四个串行队列，每个队列只执行一个任务，但最多可以同时执行四个任务，每个队列一个。 |
+| Concurrent | 并行队列（也称为全局调度队列）同时执行一个或多个任务，但任务仍按其添加到队列中的顺序启动。当前正在执行的任务在由调度队列管理的不同线程上运行。在任何给定点执行的任务的确切数量是可变的，并取决于系统条件。<br>在iOS 5及更高版本中，可以在自己创建调度队列时将队列类型指定为`DISPATCH_QUEUE_CONCURRENT`。另外，还有四个预定义的全局并发队列供应用程序使用。 |
+| Main dispatch queue | 主调度队列是一个全局可用的串行队列，用于执行应用程序主线程上的任务。该队列与应用程序的 run loop（如果存在的话）一起工作，以将排队中的任务的执行与附加到 run loop 中的其他事件源的执行错开。因为它运行在应用程序的主线程上，所以主队列通常用作应用程序的关键同步点。 |
+
+
+
