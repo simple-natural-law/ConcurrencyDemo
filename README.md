@@ -485,4 +485,64 @@ NSOperationQueue* aQueue = [[NSOperationQueue alloc] init];
 
 有关使用操作队列的信息，请参看[NSOperationQueue Class Reference](https://developer.apple.com/documentation/foundation/nsoperationqueue)。
 
+### 手动执行操作
 
+虽然操作队列是执行操作对象最方便的方式，但也可以在没有队列的情况下执行操作。但是，如果选择手动执行操作，则应该在代码中采取一些预防措施。特别是，该操作必须已经准备好执行，并且必须始终使用其`start`方法启动它。
+
+在操作对象的`isReady`方法返回`YES`之前，操作对象不能被执行。`isReady`方法被集成到`NSOperation`类的依赖管理系统中，以提供操作对象的依赖关系的状态。只有当其依赖关系被清除时，才可以开始执行。
+
+手动执行操作时，应该始终使用`start`方法来开始执行。使用该方法而不是`main`方法或者其他方法的原因是因为`start`方法在实际运行自定义代码之前会执行多个安全检查。特别是，默认的`start`方法会生成操作对象正确处理其依赖关系所需的KVO通知。该方法还可以正确避免执行操作（如果它已被取消）和在操作实际上未准备就绪时执行而引发异常。
+
+如果应用程序定义了并发操作对象，那么在启动它们之前，还应该考虑调用操作对象的`isConcurrent`方法。在此方法返回`NO`的情况下，我们的自定义代码可以决定是在当前线程中同步执行操作还是创建一个单独的线程。
+
+以下代码显示了在手动执行操作之前应该执行的检查的简单示例。如果方法返回`NO`，则可以安排定时器在稍后再次调用该方法。然后，保持定时器重新定时，直到方法返回为`YES`（这可能是因为操作被取消而造成的）。
+```
+- (BOOL)performOperation:(NSOperation*)anOp
+{
+    BOOL        ranIt = NO;
+
+    if ([anOp isReady] && ![anOp isCancelled])
+    {
+        if (![anOp isConcurrent])
+            [anOp start];
+        else
+            [NSThread detachNewThreadSelector:@selector(start) toTarget:anOp withObject:nil];
+            
+        ranIt = YES;
+    }
+    else if ([anOp isCancelled])
+    {
+        // If it was canceled before it was started,
+        //  move the operation to the finished state.
+        [self willChangeValueForKey:@"isFinished"];
+        [self willChangeValueForKey:@"isExecuting"];
+        executing = NO;
+        finished = YES;
+        [self didChangeValueForKey:@"isExecuting"];
+        [self didChangeValueForKey:@"isFinished"];
+
+        // Set ranIt to YES to prevent the operation from
+        // being passed to this method again in the future.
+        ranIt = YES;
+    }
+    return ranIt;
+}
+```
+
+### 取消操作
+
+一旦操作对象被添加到操作队列中，操作对象实际上由队列拥有并且不能被删除。从操作队列中取出操作的的唯一方法是取消它。可以通过调用单个操作对象的`cancel`方法来取消它，也可以通过调用操作队列对象的`cancelAllOperations`方法来取消队列中的所有操作对象。
+
+只有在确定不再需要时才应取消操作。发出取消命令会将操作对象置于“取消”状态，从而阻止其执行。由于取消的操作仍被视为“已完成”，因此依赖于它的操作对象将收到对应的KVO通知以清除该依赖关系。因此，取消所有排队操作来响应某些重大事件（如应用程序退出或用户特别请求取消）比选择性取消操作更为常见。
+
+### 等待操作完成
+
+为了获得最佳性能，应该将操作设计为尽可能异步，使应用程序在执行操作时可以自由地执行额外的工作。如果创建操作对象的代码也处理该操作对象的结果，则可以使用`NSOperation`的`waitUntilFinished`方法来阻拦该代码直到操作完成。但是，一般来说最好避免使用该方法。阻塞当前线程可能是一个方便的解决方案，但它确实会在您的代码中引入更多序列并限制并发执行的操作数量。
+
+> **重要说明**：永远不要等待应用程序主线程中的操作。应该仅在辅助线程或其他操作中这样做。阻塞主线程会导致应用程序无法响应用户事件，并可能导致应用程序显示无响应。
+
+除了等待单个操作完成外，还可以通过调用`NSOperationQueue`的`waitUntilAllOperationsAreFinished`方法来等待队列中的所有操作。当等待整个队列完成时，请注意应用程序的其他线程仍可以将操作添加到队列中，从而延长等待时间。
+
+### 暂停和恢复队列
+
+如果想要暂时停止执行操作，则可以使用`setSuspended:`方法挂起响应的操作队列。暂停队列不会导致已执行的操作在其任务执行期间暂停。它只是阻止新的操作被安排执行。我们可能会暂停队列以响应用户请求暂停任何正在进行的工作，因为期望用户可能最终想要恢复该工作。
