@@ -625,7 +625,7 @@ Grand Central Dispatch提供的功能允许我们从应用程序访问几个常�
 - 使用`dispatch_get_main_queue`函数获取与应用程序主线程相关联的串行调度队列。此队列是为Cocoa应用程序以及调用`dispatch_main`函数或者在主线程上配置run loop（使用`CFRunLoopRef`类型或者`NSRunLoop`对象）的应用程序自动创建的。
 - 使用`dispatch_get_global_queue`函数来获取任何共享全局并发队列。
 
-### 为调度队列管理内存
+### 调度队列的管理内存
 
 调度队列和其他调度对象是被引用计数的数据类型。创建串行调度队列时，其初始引用计数为1，可以使用`dispatch_retain`和`dispatch_release`函数根据需要递增和递减引用计数。当队列的引用计数为零时，系统会异步释放队列。
 
@@ -694,5 +694,57 @@ printf("Both blocks have completed.\n");
 ```
 
 ### 任务完成后执行Completion Block
+
+就其本质而言，调度到队列中的任务独立于创建它们的代码运行。但是，当任务完成后，应用程序可能仍然需要通知该事实，以便它可以合并结果。使用传统的编程，可以使用回调机制来这样做，但对于调度队列，可以使用completion block。
+
+completion block只是在原始任务结束时调度给队列的另一段代码。调用代码通常在其启动任务时提供completion block作为参数。所有任务代码所要做的就是在指定的队列完成其工作时，将指定的block或函数提交给指定的队列。
+
+以下代码展示了使用block实现的计算平均数的函数。计算平均数函数的最后两个参数允许调用者报告结果时指定一个队列和block。计算平均数函数在计算出结构后，将结果传递给指定的block并将其调度到队列中。为了防止队列被过早释放，首先保留该队列并在completion block被调度后释放它是至关重要的。
+```
+void average_async(int *data, size_t len,
+dispatch_queue_t queue, void (^block)(int))
+{
+    // Retain the queue provided by the user to make
+    // sure it does not disappear before the completion
+    // block can be called.
+    dispatch_retain(queue);
+
+    // Do the work on the default concurrent queue and then
+    // call the user-provided block with the results.
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        int avg = average(data, len);
+        dispatch_async(queue, ^{ block(avg);});
+
+        // Release the user-provided queue when done
+        dispatch_release(queue);
+    });
+}
+```
+
+### 并行执行循环迭代
+
+在循环执行固定迭代次数的地方，使用并发调度队列可能会提高性能。例如，假设有一个for循环，通过每个循环迭代完成一些工作：
+```
+for (i = 0; i < count; i++) {
+    printf("%u\n",i);
+}
+```
+如果在每次迭代执行期间执行的工作与所有其他迭代期间执行的工作不同，并且每个后续循环完成的顺序不重要，则可以使用`dispatch_apply`或者`dispatch_apply_f`函数调用来替代循环。这些函数为每个循环迭代提交指定的block或函数到一个队列中。当调度到并发队列时，可以并行执行多个循环迭代。
+
+调用`dispatch_apply`或者`dispatch_apply_f`函数时可以指定一个串行队列或一个并行队列。传入并行队列允许我们同时执行多个循环迭代，并且是使用这些函数的最常见方式。虽然也允许使用串行队列，但这相对于使用循环并没有真正的性能优势。
+
+> **重要**：与常规for循环一个，`dispatch_apply`或者`dispatch_apply_f`函数在所有循环迭代完成之后才会返回。因此，在从正在队列的上下文中执行的代码中调用它们时要小心。如果作为参数传递给函数的队列是串行队列，并且与执行当前代码的队列相同，则调用这些函数将导致队列死锁。因为它们会阻塞当前线程，使事件处理循环无法及时响应事件，所以在主线程调用这些函数时应该小心。如果循环代码需要大量的处理时间，则可能需要从不同的线程调用这些函数。
+
+以下代码显示了如何使用`dispatch_apply`函数替代前面的for循环。传递给`dispatch_apply`函数的block必须包含一个标识当前循环迭代的参数。在执行该block时，此参数的值在第一次迭代中为0，在第二次中为1，依此类推。最后一次迭代的参数值时count-1，其中count时迭代的总次数。
+```
+dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+dispatch_apply(count, queue, ^(size_t i) {
+    printf("%u\n",i);
+});
+```
+应该确保任务代码在每次迭代中都会做一些合理的工作。与任何调度到队列的block或函数一样，调度该代码以供执行也会有开销。如果循环的每次迭代执行少量工作，则调度代码的开销可能会超过将其调度到队列中可能带来的性能提升。如果在测试过程中发现这是真的，则可以使用跨越来增加每次循环迭代期间执行的工作量。通过跨越，可以将原始循环的多个迭代组合到一个block中，并按比例减少迭代次数。例如，如果最初执行100次迭代，但决定使用4次跨越，则现在在每个block中执行4次循环迭代，并且迭代次数变为25次。有关如何实现跨越的示例，请参看[改进循环代码](jump)。
+
+### 在主线程中执行任务
 
 
