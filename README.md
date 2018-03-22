@@ -180,7 +180,7 @@ operation旨在帮助提高应用程序中的并发水平。operation也是将�
 
 `NSBlockOperation`类是`NSOperation`的具体子类，充当一个或多个block对象的包装。此类为已经已经使用操作队列并且不想创建调度队列的应用程序提供面向对象的包装器。还可以使用block操作来利用操作依赖关系、KVO 以及可能不适用于调度队列的其他功能。
 
-在创建一个block操作时，通常在初始化时至少添加一个block，并在稍后根据需要添加更多block。当需要执行`NSBlockOperation`对象时，该操作对象将其所有block对象提交给默认优先级的并发调度队列（concurrent dispatch queue）。操作对象会等待所有block完成执行，当最后一个block完成执行时，操作对象将自身标记为已完成。因此，我们可以使用block操作来跟踪一组正在执行的block，就像使用线程联结合并多个线程的结果一样。区别在于，**因为block操作本身在单独的线程上运行，所以应用程序的其他线程可以在等待block操作完成的同时继续工作。**
+在创建一个block操作时，通常在初始化时至少添加一个block，并在稍后根据需要添加更多block。当需要执行`NSBlockOperation`对象时，该操作对象将其所有block对象提交给默认优先级的并发调度队列（concurrent dispatch queue）。操作对象会等待所有block完成执行，当最后一个block完成执行时，操作对象将自身标记为已完成。因此，我们可以使用block操作来跟踪一组正在执行的block，就像使用线程连接合并多个线程的结果一样。区别在于，**因为block操作本身在单独的线程上运行，所以应用程序的其他线程可以在等待block操作完成的同时继续工作。**
 
 以下代码显示了如何创建一个`NSBlockOperation`对象的简单示例。该block本身没有参数并且没有返回结果。
 ```
@@ -767,4 +767,60 @@ GCD为Cocoa内存管理技术提供了内置支持，因此可以在提交到调
 
 ## 使用调度信号来调节有限资源的使用
 
+如果提交给调度队列的任务访问某些有限的资源，则可能需要使用调度信号来调节同时访问该资源的任务数量。调度信号像常规信号一样工作，只有一个例外。当资源可用时，获取调度信号比获取传统信号需要的时间更少。这是因为Grand Central Dispatch不会为这种特定情况去调用内核。只有在资源不可用并且系统需要停止线程直到发出信号为止时，才会调用系统内核。
+
+使用调度信号的语义如下：
+- 当创建信号量时（使用`dispatch_semaphore_create`函数），可以指定一个指示可用资源数量的正整数。
+- 在每个任务中，调用`dispatch_semaphore_wait`函数来等待信号。
+- `dispatch_semaphore_wait`函数调用返回时，获取资源并完成要执行的工作。
+- 当完成工作后，释放资源并调用`dispatch_semaphore_signal`函数发出信号。
+
+有关这些步骤如何工作的示例，请考虑使用系统中的描述文件符。每个应用程序都使用有限数量的文件描述符。如果我们有一个处理大量文件的任务，我们不希望一次打开太多的文件以至于用光文件描述符。相反，我们可以使用信号量来限制文件处理代码一次使用的文件描述符的数量。如下所示：
+```
+// Create the semaphore, specifying the initial pool size
+dispatch_semaphore_t fd_sema = dispatch_semaphore_create(getdtablesize() / 2);
+
+// Wait for a free file descriptor
+dispatch_semaphore_wait(fd_sema, DISPATCH_TIME_FOREVER);
+fd = open("/etc/services", O_RDONLY);
+
+// Release the file descriptor when done
+close(fd);
+dispatch_semaphore_signal(fd_sema);
+```
+在创建信号量时，可以指定可用资源的数量。该值将成为信号量的初始计数变量。每次在信号量上等待时，`dispatch_semaphore_wait`函数会将该变量的计数减1.如果结果值为负数，该函数会通知内核阻塞当前线程。另一方面，`dispatch_semaphore_signal`函数将计数变量加1，表示资源已被释放。如果有任务被阻塞并等待资源，它们中的一个随后会被解除阻塞并允许其工作。
+
+## 等待排队任务组
+
+调度组是阻塞线程直到一个或多个任务完成执行的一种方式。例如，在调度几个任务来计算一些数据之后，可以使用一个组来等待这些任务，然后在它们都完成时处理结果。另一种使用调度组的方式是作为线程连接的替代方法。可以将相应的任务添加到一个调度组然后等待整个组，而不是启动多个子线程并将每个任务加入其中一个线程。
+
+以下代码显示了设置一个组并调度任务给它，然后等待结果的基本过程。不是使用`dispatch_async`函数将任务调度到队列，而是使用`dispatch_group_async`函数将任务与组相关联并队列执行。要等待一组任务完成，可以使用`dispatch_group_wait`函数传递相应的组。
+```
+dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+dispatch_group_t group = dispatch_group_create();
+
+// Add a task to the group
+dispatch_group_async(group, queue, ^{
+    // Some asynchronous work
+});
+
+// Do some other work while the tasks execute.
+
+// When you cannot make any more forward progress,
+// wait on the group to block the current thread.
+dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+
+// Release the group when it is no longer needed.
+dispatch_release(group);
+```
+
+## 调度队列和线程安全
+
+在调度队列中讨论线程安全可能看起来很奇怪，但线程安全仍然是一个相关主题。任何时候在应用程序中实现并发时，都应该知道以下几件事情：
+- 调度队列本身是线程安全的。换句话说，我们可以将任务从系统中的任何线程提交到调度队列，而无需首先获取锁或者同步访问队列。
+- 不要从传递给`dispatch_sync`函数的同一队列中执行的任务中调用`dispatch_sync`函数。这样做会导致队列死锁。如果需要调度到当前队列，请使用`dispatch_async`函数异步执行。
+- 避免从提交给调度队列的任务中获取锁。虽然使用来自任务的锁是安全的，但是当我们获取锁时，如果该锁不可用，则可能会完全阻塞串行队列。同样，对于并发队列，等待锁可能会阻止执行其他任务。如果需要同步部分代码，请使用串行调度队列而不是锁。
+- 尽管我们可以获取有关运行任务的基础线程的信息，但最好避免这样做。有关调度队列与线程的兼容性的更多信息，请参看[Compatibility with POSIX Threads](https://developer.apple.com/library/content/documentation/General/Conceptual/ConcurrencyProgrammingGuide/ThreadMigration/ThreadMigration.html#//apple_ref/doc/uid/TP40008091-CH105-SW18)。
+
+有关如何将现有线程代码更改为使用调度队列的其他提示，请参看[Migrating Away from Threads](https://developer.apple.com/library/content/documentation/General/Conceptual/ConcurrencyProgrammingGuide/ThreadMigration/ThreadMigration.html#//apple_ref/doc/uid/TP40008091-CH105-SW1)。
 
