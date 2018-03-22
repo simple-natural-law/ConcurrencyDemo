@@ -747,4 +747,24 @@ dispatch_apply(count, queue, ^(size_t i) {
 
 ### 在主线程中执行任务
 
+Grand Central Dispatch提供了一个特殊的调度队列，可以使用它来在应用程序的主线程上执行任务。该队列为所有应用程序自动提供，并由在主线程上设置了run loop（由CFRunLoopRef类型或NSRunLoop对象管理）的应用程序自动排空。如果没有创建Cocoa应用程序，也不想显式设置run loop，则必须调用`dispatch_main`函数来显式排空主调度队列。虽然仍然可以将任务添加到队列中，但如果不调用此函数，这些任务就永远不会执行。
+
+可以通过调用`dispatch_get_main_queue`函数来获取应用程序主线程的调度队列。添加到该队列的任务在主线程中串行执行。因此，可以将此队列用作同步点，以便在应用程序的其他部分完成工作。
+
+### 在任务中使用Objective-C对象
+
+GCD为Cocoa内存管理技术提供了内置支持，因此可以在提交到调度队列的block中自由使用Objective-C对象。每个调度队列维护自己的自动释放池，以确保自动释放分对象在某个时刻被释放。**队列无法保证在何时实际释放这些对象。**
+
+如果应用程序的内存受限并且block创建了多个自动释放对象，则创建我们自己的自动释放池是确保及时释放对象的唯一方法。如果block创建了数百个对象，则可能需要创建多个自动释放池或者定期排空自动释放池。
+
+有关自动释放池和Objective-C内存管理的更多信息，请参看[Advanced Memory Management Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/MemoryMgmt/Articles/MemoryMgmt.html#//apple_ref/doc/uid/10000011i)。
+
+## 暂停和恢复队列
+
+可以通过挂起队列暂时阻止其执行block对象。使用`dispatch_suspend`函数暂停调度队列，并使用`dispatch_resume`函数恢复它。调用`dispatch_suspend`函数会使队列的暂停引用计数加1，调用`dispatch_resume`会使队列的暂停引用计数减1。当暂停引用计数大于零时，队列保持挂起状态。因此必须保持`dispatch_suspend`函数的调用与`dispatch_resume`函数的调用平衡，以便恢复处理block。
+
+> **重要提示**：暂停和恢复的调用式异步的，暂停队列不会导致正在执行的block停止执行。
+
+## 使用调度信号来调节有限资源的使用
+
 
