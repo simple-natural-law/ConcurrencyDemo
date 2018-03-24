@@ -126,7 +126,7 @@ Operation queues，dispatch queues，和dispatch sources使我们可以更轻松
 
 # iOS并发编程 -- Operation Queues
 
-Cocoa operation以一种面向对象的方式来封装需要异步执行的工作，operation被设计为与operation queue一起使用或者单独使用。因为它们基于Objective-C，所以OS X和iOS中基于Cocoa的应用程序最常使用它们。
+Cocoa operation以一种面向对象的方式来封装需要并发执行的工作，operation被设计为与operation queue一起使用或者单独使用。因为它们基于Objective-C，所以OS X和iOS中基于Cocoa的应用程序最常使用它们。
 
 ## 关于Operation对象
 
@@ -833,7 +833,7 @@ dispatch_release(group);
 调度源是协调特定低级系统事件处理的基本数据类型。Grand Central Dispatch支持以下类型的调度源：
 - 定时器调度源生成定期通知。
 - 信号调度源在UNIX信号到达时通知我们。
-- 描述符源通知我们各种基于文件和基于套接字的操作：例如：
+- 描述符源通知我们各种基于文件和基于套接字的操作，例如：
     - 当数据可供读取时。
     - 当可以写入数据时。
     - 在文件系统中删除，移动或重命名文件时。
