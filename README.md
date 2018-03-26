@@ -903,3 +903,34 @@ dispatch_source_set_cancel_handler(mySource, ^{
 所有定时器调度源都是间隔定时器--即一旦创建，它们会在我们指定的时间间隔传递定期事件。当创建一个定时器调度源时，误差值是必须指定的值之一，它能够使系统了解定时器事件所需的精度。误差值为系统管理功耗和唤醒内核提供了一定的灵活性。例如，系统可能会使用误差值来提前或者延迟触发时间，并将其与其他系统事件更好地对齐。因此，我们应该尽可能为定时器指定一个误差值。
 
 > **注意**：即使我们指定误差值为0，也绝对不要期望一个定时器在要求的精确纳秒下触发。系统会尽最大努力满足我们的需求，但并不能保证准确的触发时间。
+
+当计算机进入睡眠状态时，所有定时器调度源都将暂停。当计算机唤醒时，这些定时器调度源也会自定唤醒。根据定时器的配置，这种性质的暂停可能会影响定时器下次触发的时间。如果使用`dispatch_time`函数或者`DISPATCH_TIME_NOW`常量设置定时器调度源，则定时器调度源使用默认系统时钟来确定何时触发。但是，计算机进入睡眠状态时，默认时钟不会前进。相比之下，当使用`dispatch_walltime`函数设置定时器调度源时，定时器调度源将其触发时间追踪到挂钟时间。后一种选择通常适用于定时间隔相对较大的定时器，因为其可以防止事件时间之间出现太多漂移。
+
+以下代码给出了一个定时器的例子，梅30秒触发一次，误差值为1秒。由于定时器间隔相对较大，因此使用`dispatch_walltime`函数创建调度源。定时器首次触发，随后的事件每隔30秒到达一次。
+```
+dispatch_source_t CreateDispatchTimer(uint64_t interval, uint64_t leeway, dispatch_queue_t queue, dispatch_block_t block)
+{
+    dispatch_source_t timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0, 0, queue);
+    if (timer)
+    {
+        dispatch_source_set_timer(timer, dispatch_walltime(NULL, 0), interval, leeway);
+        dispatch_source_set_event_handler(timer, block);
+        dispatch_resume(timer);
+    }
+    return timer;
+}
+
+void MyCreateTimer()
+{
+    dispatch_source_t aTimer = CreateDispatchTimer(30ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC, dispatch_get_main_queue(),^{ MyPeriodicTask(); });
+
+    // Store it somewhere for later use.
+    if (aTimer)
+    {
+        MyStoreTimer(aTimer);
+    }
+}
+```
+虽然创建定时器调度源是接收基于时间的事件的主要方式，但还有其他选项可用。如果想在指定的时间间隔后执行一次block，则可以使用`dispatch_after`或者`dispatch_after_f`函数。该函数的行为与`dispatch_async`函数非常相似，不同之处在于它允许指定将block提交到队列的时间值。时间值可以根据需要指定为相对或者绝对时间值。
+
+### 从描述符中读取数据
