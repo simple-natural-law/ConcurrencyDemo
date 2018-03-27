@@ -1041,4 +1041,56 @@ dispatch_source_t WriteDataToFile(const char* filename)
 ```
 ### 监听文件系统对象
 
+如果要监视文件系统对象的更改，可以将调度源的类型设置为`DISPATCH_SOURCE_TYPE_VNODE`。当文件被删除、 写入或重命名时，可以使用这种类型的调度源来接收通知。当文件元信息的特定类型（如大小和链接数量）发生变化时，也可以使用它来提醒用户。
+
+> **注意**：为调度源指定的文件描述符在调度源本身处理事件时必须保持打开状态。
+
+以下代码显示了一个示例，该示例监听文件的名称变化并在发生变化时执行一些自定义行为。（我们将提供实际行为来代替示例中调用的MyUpdateFileName函数。）由于描述符是专门为调度源打开的，因此调度源包含一个关闭描述符的取消事件处理程序。由于示例创建的文件描述符与底层文件系统对象关联，所以可以使用相同的调度源来检查任意数量的文件名更改。
+```
+dispatch_source_t MonitorNameChangesToFile(const char* filename)
+{
+    int fd = open(filename, O_EVTONLY);
+    
+    if (fd == -1)
+        return NULL;
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_VNODE, fd, DISPATCH_VNODE_RENAME, queue);
+    
+    if (source)
+    {
+        // Copy the filename for later use.
+        int length = strlen(filename);
+        char* newString = (char*)malloc(length + 1);
+        newString = strcpy(newString, filename);
+        dispatch_set_context(source, newString);
+
+        // Install the event handler to process the name change
+        dispatch_source_set_event_handler(source, ^{
+        
+            const char*  oldFilename = (char*)dispatch_get_context(source);
+            MyUpdateFileName(oldFilename, fd);
+        });
+
+        // Install a cancellation handler to free the descriptor
+        // and the stored string.
+        dispatch_source_set_cancel_handler(source, ^{
+    
+            char* fileStr = (char*)dispatch_get_context(source);
+            free(fileStr);
+            close(fd);
+        });
+
+        // Start processing events.
+        dispatch_resume(source);
+    }
+    else
+        close(fd);
+    
+    return source;
+}
+```
+
+### 监听信号
 
