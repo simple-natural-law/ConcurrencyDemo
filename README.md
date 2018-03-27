@@ -1094,3 +1094,59 @@ dispatch_source_t MonitorNameChangesToFile(const char* filename)
 
 ### 监听信号
 
+UNIX信号允许来自于应用程序域外的操作。应用程序可以接收许多不同类型的信号，从不可恢复的错误（例如非法指令）到关于重要信息（例如子进程退出时）的通知。通常情况下，应用程序使用`sigaction`函数来安装信号处理函数，其会在信号到达时立即同步处理信号。如果只是希望得到一个信号到达通知而实际上不想处理该信号，则可以使用信号调度源异步处理信号。
+
+信号调度源并不能替代使用`sigaction`函数安装的同步信号处理程序。同步信号处理程序实际上可以捕获信号并防止其终止我们的应用程序。信号调度源允许只监听信号的到达。另外，不能使用信号调度源来检索所有类型的信号。具体而言，不能使用它们来监听`SIGILL` ，`SIGBUS`和`SIGSEGV`信号。
+
+由于信号调度源在调度队列中是异步执行的，因此它们不会受到与同步信号处理程序相同的限制。例如，可以从信号调度源的事件处理程序调用的函数是没有限制的。这种增加灵活性的折衷是，信号到达的时间与调度源的事件处理程序被调用的时间之间可能会有一些延迟。
+
+以下代码显示了如何配置好一个信号调度源来处理`SIGHUP`信号。调度源的事件处理程序调用MyProcessSIGHUP函数，该函数将在应用程序中用处理信号的代码替换。
+```
+void InstallSignalHandler()
+{
+    // Make sure the signal does not terminate the application.
+    signal(SIGHUP, SIG_IGN);
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_SIGNAL, SIGHUP, 0, queue);
+
+    if (source)
+    {
+        dispatch_source_set_event_handler(source, ^{
+            MyProcessSIGHUP();
+        });
+
+        // Start processing signals
+        dispatch_resume(source);
+    }
+}
+```
+如果我们正在开发自定义框架，使用信号调度源的优势在于我们的代码可以监听独立于任何与之相关联的应用程序的信号。信号调度源不会干扰其他调度源或应用程序可能安装的任何同步信号处理程序。
+
+### 监听进程
+
+进程调度源能够监听特定进程的行为并做出适当的响应。父进程可能使用这种类型的调度源来监听它创建的任何子进程。例如，父进程可以用它来监听子进程的死亡。同样，如过父进程退出，子进程可以使用它来监听其父进程并退出。
+
+以下代码显示了安装调度源来监听父进程终止的步骤。当父进程死亡时，调度源设置一些内部状态信息，让子进程指定其应该退出。（我们自己的应用程序需要实现MySetAppExitFlag函数来设置适当的终止标志。）由于调度源自主运行，因此它持有自己本身，它也会在程序关闭的情况下取消并释放自身。
+```
+void MonitorParentProcess()
+{
+    pid_t parentPID = getppid();
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_PROC, parentPID, DISPATCH_PROC_EXIT, queue);
+    
+    if (source)
+    {
+        dispatch_source_set_event_handler(source, ^{
+        
+            MySetAppExitFlag();
+            dispatch_source_cancel(source);
+            dispatch_release(source);
+        });
+        dispatch_resume(source);
+    }
+}
+```
