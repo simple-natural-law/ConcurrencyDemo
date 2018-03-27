@@ -934,3 +934,111 @@ void MyCreateTimer()
 虽然创建定时器调度源是接收基于时间的事件的主要方式，但还有其他选项可用。如果想在指定的时间间隔后执行一次block，则可以使用`dispatch_after`或者`dispatch_after_f`函数。该函数的行为与`dispatch_async`函数非常相似，不同之处在于它允许指定将block提交到队列的时间值。时间值可以根据需要指定为相对或者绝对时间值。
 
 ### 从描述符中读取数据
+
+要从文件或套接字读取数据，必须打开文件或者套接字并创建一个类型为`DISPATCH_SOURCE_TYPE_READ`的调度源。我们指定的事件处理程序应该能够读取和处理文件描述符的内容。对于文件，这相当于读取文件数据（或数据的一个子集）并为应用程序创建适当的数据结构。对于网络套接字，这涉及处理新接收的网络数据。
+
+每当读取数据时，都应该将描述符配置为使用非阻塞操作。尽管可以使用`dispatch_source_get_data`函数来查看有多少数据可供读取，但在拨打电话时该函数返回的数字可能会与实际读取数据时返回的数字不同。如果底层文件被截断或发生网络错误，则阻塞当前线程的描述符读取可能会停止正在执行的事件处理程序，并阻止调度队列调度其他任务。对于串行队列，这可能会使队列死锁，即使是并发队列也会减少可以启动的新任务的数量。
+
+以下代码显示了配置一个调度源以从文件读取数据的示例。在此示例中，事件处理程序将指定文件的全部内容读入缓冲区，并调用自定义函数来处理数据。（一旦读取操作完成，此函数的调用者将使用返回的调度源来取消它。）为确保在没有数据要读取时调度队列不被阻塞，本示例使用`fcntl`函数配置文件描述符来执行非阻塞操作。安装在调度源上的取消事件处理程序确保在读取数据后关闭文件描述符。
+```
+dispatch_source_t ProcessContentsOfFile(const char* filename)
+{
+    // Prepare the file for reading.
+    int fd = open(filename, O_RDONLY);
+    
+    if (fd == -1)
+        return NULL;
+        
+    fcntl(fd, F_SETFL, O_NONBLOCK);  // Avoid blocking the read operation
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    
+    dispatch_source_t readSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, fd, 0, queue);
+    
+    if (!readSource)
+    {
+        close(fd);
+        return NULL;
+    }
+
+    // Install the event handler
+    dispatch_source_set_event_handler(readSource, ^{
+    
+        size_t estimated = dispatch_source_get_data(readSource) + 1;
+        
+        // Read the data into a text buffer.
+        char* buffer = (char*)malloc(estimated);
+        
+        if (buffer)
+        {
+            ssize_t actual = read(fd, buffer, (estimated));
+            Boolean done = MyProcessFileData(buffer, actual);  // Process the data.
+
+            // Release the buffer when done.
+            free(buffer);
+
+            // If there is no more data, cancel the source.
+            if (done)
+                dispatch_source_cancel(readSource);
+        }
+    });
+
+    // Install the cancellation handler
+    dispatch_source_set_cancel_handler(readSource, ^{close(fd);});
+
+    // Start reading the file.
+    dispatch_resume(readSource);
+    return readSource;
+}
+```
+自定义MyProcessFileData函数确定何时读取了足够的文件数据并且可以取消调度源。默认情况下，从描述符读取数据的调度源被配置为在读取数据的同时，还要重复调度其事件处理程序。如果socket连接关闭或已经读取完整个文件，则调度源将自动停止调度事件处理程序。如果不再需要调度源，可以直接取消它。
+
+### 将数据写入到描述符
+
+将数据写入文件或套接字的过程与读取数据的过程非常相似。在为写入操作配置描述符后，需要创建一个类型为`DISPATCH_SOURCE_TYPE_WRITE`的调度源。一旦创建了该调度源，系统会调用我们的事件处理程序，使其有机会开始将数据写入文件或套接字。当完成数据写入时，使用`dispatch_source_cancel`函数取消调度源。
+
+每次写入数据时，都应该将文件描述符配置为使用非阻塞操作。尽管可以使用`dispatch_source_get_data`函数来查看写入空间的可用空间，但该函数返回的值仅供参考，调用时返回的值可能和实际写入数据后的值不同。如果发生错误，将数据写入阻塞文件描述符可能会中止正在执行的事件处理程序并阻止调度队列调度其他任务。对于串行队列，这可能会使队列死锁，即使是并发队列也会减少可以启动的新任务的数量。
+
+以下代码展示了使用调度源将数据写入文件的基本方法。创建新文件后，该函数将生成的文件描述符传递给它的事件处理程序。被放入文件的数据由MyGetData函数提供，可以使用它替换生成文件数据所需的任何代码。在数据写入文件之后，事件处理程序会取消调度源以防止再次调用它。调度源的持有者负责释放它。
+```
+dispatch_source_t WriteDataToFile(const char* filename)
+{
+    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, (S_IRUSR | S_IWUSR | S_ISUID | S_ISGID));
+    
+    if (fd == -1)
+        return NULL;
+        
+    fcntl(fd, F_SETFL); // Block during the write.
+
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    
+    dispatch_source_t writeSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_WRITE, fd, 0, queue);
+    
+    if (!writeSource)
+    {
+        close(fd);
+        return NULL;
+    }
+
+    dispatch_source_set_event_handler(writeSource, ^{
+    
+        size_t bufferSize = MyGetDataSize();
+        void* buffer = malloc(bufferSize);
+
+        size_t actual = MyGetData(buffer, bufferSize);
+        write(fd, buffer, actual);
+
+        free(buffer);
+
+        // Cancel and release the dispatch source when done.
+        dispatch_source_cancel(writeSource);
+    });
+
+    dispatch_source_set_cancel_handler(writeSource, ^{close(fd);});
+    dispatch_resume(writeSource);
+    return (writeSource);
+}
+```
+### 监听文件系统对象
+
+
