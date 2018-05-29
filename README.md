@@ -1,4 +1,4 @@
-# iOS并发编程 -- 并发性和应用程序设计
+# 并发性和应用程序设计
 
 在计算机发展初期，计算机可以执行的每单位时间的最大工作量取决于CPU的频率。但随着技术进步和处理器设计变得更加紧凑，热量和其他物理约束开始限制处理器的最大频率。因此，芯片制造商寻找其他方法来提高芯片的整体性能。他们的解决方案是增加每个芯片上处理器内核的数量。通过增加内核数量，单个芯片每秒可以执行更多指令，而不会增加CPU频率或者改变芯片尺寸或热特性。唯一的问题是如何利用额外的内核。
 
@@ -35,7 +35,7 @@ Dispatch queues还有其他益处：
 
 提交给dispatch queue的任务必须封装在函数或者block对象中。block对象是OS X v10.6和iOS 4.0中引入的一种C语言特性，它在概念上类似于函数指针，但有一些额外的好处。通常在其他函数或方法中定义block，以便可以从该函数或方法访问其他变量。block也能被移出栈区并复制到堆区，这是将它们提交给dispatch queue时所发生的情况。所有这些语义都可以用较少的代码实现非常动态的任务。
 
-Dispatch queues是Grand Central Dispatch技术的一部分，是C语言运行时的一部分。有关在应用程序中使用dispatch queue的更多信息，请参看[iOS并发编程 -- Dispatch Queues](https://www.jianshu.com/p/4533e653d49f)。有关block及其优点的更多信息，请参看[Block编程指南](https://www.jianshu.com/p/c1c03ae5a6a5)。
+Dispatch queues是Grand Central Dispatch技术的一部分，是C语言运行时的一部分。有关在应用程序中使用dispatch queue的更多信息，请参看[Dispatch Queues](https://www.jianshu.com/p/4533e653d49f)。有关block及其优点的更多信息，请参看[Block编程指南](https://www.jianshu.com/p/c1c03ae5a6a5)。
 
 ### Dispatch Sources
 
@@ -47,7 +47,7 @@ Dispatch sources（调度源）是一种基于C语言的机制，其用于异步
 - Mach port events
 - Custom events that you trigger
 
-Dispatch sources是Grand Central Dispatch技术的一部分。有关使用dispatch source在应用程序中接收事件的信息，请参看[iOS并发编程 -- Dispatch sources](https://www.jianshu.com/p/6508aaf2df4e)。
+Dispatch sources是Grand Central Dispatch技术的一部分。有关使用dispatch source在应用程序中接收事件的信息，请参看[Dispatch sources](https://www.jianshu.com/p/6508aaf2df4e)。
 
 ### Operation Queues
 
@@ -57,7 +57,7 @@ Operation Queue（操作队列）是concurrent dispatch queue的Cocoa同等技�
 
 Operation对象会生成键-值观观察（KVO）通知，这是监视任务进度的有效方法。**虽然operation queue总是并行执行操作，但可以使用依赖关系来确保在需要时它们被串行执行。**
 
-有关如何使用operation queue的更多信息以及如何自定义operation对象的更多信息，请参看[iOS并发编程 -- Operation Queues](https://www.jianshu.com/p/65ab102cac60)。
+有关如何使用operation queue的更多信息以及如何自定义operation对象的更多信息，请参看[Operation Queues](https://www.jianshu.com/p/65ab102cac60)。
 
 ## 异步设计技术
 
@@ -124,7 +124,7 @@ Operation queues，dispatch queues，和dispatch sources使我们可以更轻松
 与任何线程编程一样，应该总是明智地使用线程，并且只有在绝对有必要时才使用线程。有关线程组件的更多信息以及如何使用它们，请参看[Threading Programming Guide](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/Introduction/Introduction.html#//apple_ref/doc/uid/10000057i)。
 
 
-# iOS并发编程 -- Operation Queues
+# Operation Queues
 
 Cocoa operation以一种面向对象的方式来封装需要并发执行的工作，operation被设计为与operation queue一起使用或者单独使用。因为它们基于Objective-C，所以OS X和iOS中基于Cocoa的应用程序最常使用它们。
 
@@ -547,7 +547,7 @@ NSOperationQueue* aQueue = [[NSOperationQueue alloc] init];
 
 如果想要暂时停止执行操作，则可以使用`setSuspended:`方法挂起响应的操作队列。暂停队列不会导致已执行的操作在其任务执行期间暂停。它只是阻止新的操作被安排执行。我们可能会暂停队列以响应用户请求暂停任何正在进行的工作，因为期望用户可能最终想要恢复该工作。
 
-# iOS并发编程 -- Dispatch Queues
+# Dispatch Queues
 
 Grend Central Dispatch（GCD）调度队列是执行任务的强大工具。调度队列让我们可以与调用者异步或同步地执行任何代码块。可以使用调度队列来执行几乎所有用于在单独的线程上执行的任务。调度队列的优点是它们相应的线程代码更简单有效地执行这些任务。
 
@@ -576,7 +576,7 @@ Grend Central Dispatch（GCD）调度队列是执行任务的强大工具。调�
 - 系统确定任何时间点执行的任务总数。因此，有100个不同队列且每个队列有100个任务的应用程序可能不会并行执行所有这些任务（除非它具有100个或更多有效内核）。
 - 在选择启动哪些新任务时，系统会考虑队列优先级。
 - 队列中的任务在添加到队列时必须已准备好执行。（与Cocoa操作对象的使用不同）
-- 私有调度队列是被引用计数的对象。除了在自己的代码中保留队列之外，请注意，调度源也可以附加到队列中，并增加其引用计数。因此，必须确保所有调度源都被取消，并且所有`retain`调用均通过对应的`release`调用来保持平衡。有关引用和释放调度队列的更多信息，请参看[调度队列的内存管理](jump)。有关调度源的更多信息，请参看[iOS并发编程 -- Dispatch Sources](jump)。
+- 私有调度队列是被引用计数的对象。除了在自己的代码中保留队列之外，请注意，调度源也可以附加到队列中，并增加其引用计数。因此，必须确保所有调度源都被取消，并且所有`retain`调用均通过对应的`release`调用来保持平衡。有关引用和释放调度队列的更多信息，请参看[调度队列的内存管理](jump)。有关调度源的更多信息，请参看[Dispatch Sources](jump)。
 
 ## 与队列相关的技术
 
@@ -824,7 +824,7 @@ dispatch_release(group);
 
 有关如何将现有线程代码更改为使用调度队列的其他提示，请参看[Migrating Away from Threads](https://developer.apple.com/library/content/documentation/General/Conceptual/ConcurrencyProgrammingGuide/ThreadMigration/ThreadMigration.html#//apple_ref/doc/uid/TP40008091-CH105-SW1)。
 
-# iOS并发编程 -- Dispatch Sources
+# Dispatch Sources
 
 当我们与底层系统进行交互时，必须为该任务做好准备，以便只花费少量时间。调用内核或其他系统层涉及上下文的变化，与在我们自己的进程中发生的调用相比，这种变化相当昂贵。因此，许多系统库提供异步接口，以允许我们的代码向系统提交请求，并在处理该请求时继续执行其他工作。Grand Central Dispatch通过允许我们提交请求并使用block和调度队列将结果报告回我们的代码来构建此一般行为。
 

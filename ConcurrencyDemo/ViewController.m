@@ -27,63 +27,22 @@
     NSBlockOperation *blockOperation = [NSBlockOperation blockOperationWithBlock:^{
         
         NSLog(@"操作 ------> 1");
-        
-        for (int i = 0; i < 2; i++) {
-            
-        }
-        
-        NSLog(@"gggggggg");
     }];
     
-    [blockOperation addExecutionBlock:^{
-        
-        NSLog(@"a");
-        
-        for (int i = 0; i < 2; i++) {
-            
-        }
-        
-        NSLog(@"==========");
+    NSInvocationOperation *invocationOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperation) object:nil];
+
+    // 在将操作添加到操作队列之前，配置操作依赖性，invocationOperation会等到blockOperation完成后才开始执行
+    //[invocationOperation addDependency:blockOperation];
+
+    [operationQueue addOperation:blockOperation];
+
+    [operationQueue addOperation:invocationOperation];
+
+    // 直接添加一个操作到operationQueue中
+    [operationQueue addOperationWithBlock:^{
+
+        NSLog(@"操作 ------> 3");
     }];
-    
-    [blockOperation addExecutionBlock:^{
-        
-        NSLog(@"b");
-        
-        for (int i = 0; i < 2; i++) {
-            
-        }
-        
-        NSLog(@"1111111111");
-    }];
-    
-    [blockOperation addExecutionBlock:^{
-        
-        NSLog(@"c");
-        
-        for (int i = 0; i < 2; i++) {
-            
-        }
-        
-        NSLog(@"333333333333");
-    }];
-    
-    [blockOperation start];
-    
-//    NSInvocationOperation *invocationOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperation) object:nil];
-//
-//    // 在将操作添加到操作队列之前，配置操作依赖性，invocationOperation会等到blockOperation完成后才开始执行
-//    //[invocationOperation addDependency:blockOperation];
-//
-//    [operationQueue addOperation:blockOperation];
-//
-//    [operationQueue addOperation:invocationOperation];
-//
-//    // 直接添加一个操作到operationQueue中
-//    [operationQueue addOperationWithBlock:^{
-//
-//        NSLog(@"操作 ------> 3");
-//    }];
 }
 
 - (void)invocationOperation
