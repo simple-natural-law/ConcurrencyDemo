@@ -43,13 +43,13 @@
     
     // 创建一个非并发自定义操作
     CustomOperation *customOperation = [[CustomOperation alloc] initWithIdentifier:@"5"];
+    // 设置操作的执行优先级
+    [customOperation setQueuePriority:NSOperationQueuePriorityHigh];
 
     // 在将操作添加到操作队列之前，配置操作依赖性，invocationOperation会等到blockOperation完成后才开始执行
     [invocationOperation addDependency:blockOperation];
     
-    [blockOperation addDependency:customOperation];
-
-    [customOperation addDependency:customConcurrentOperation];
+    [blockOperation addDependency:customConcurrentOperation];
     
     // 将操作添加到操作队列
     [operationQueue addOperation:blockOperation];
