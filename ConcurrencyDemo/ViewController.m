@@ -8,7 +8,7 @@
 
 #import "ViewController.h"
 #import "CustomOperation.h"
-
+#import "CustomConcurrentOperation.h"
 
 @interface ViewController ()
 
@@ -35,22 +35,30 @@
         
         NSLog(@"操作 ------> 1");
     }];
-    
+    // 创建一个NSInvocationOperation
     NSInvocationOperation *invocationOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperation) object:nil];
     
+    // 创建一个并发自定义操作
+    CustomConcurrentOperation *customConcurrentOperation = [[CustomConcurrentOperation alloc] initWithIdentifier:@"4"];
     
-    CustomOperation *customOperation = [[CustomOperation alloc] initWithIdentifier:@"4"];
+    // 创建一个非并发自定义操作
+    CustomOperation *customOperation = [[CustomOperation alloc] initWithIdentifier:@"5"];
+    // 设置操作的执行优先级
+    [customOperation setQueuePriority:NSOperationQueuePriorityHigh];
 
     // 在将操作添加到操作队列之前，配置操作依赖性，invocationOperation会等到blockOperation完成后才开始执行
     [invocationOperation addDependency:blockOperation];
     
-    [blockOperation addDependency:customOperation];
-
+    [blockOperation addDependency:customConcurrentOperation];
+    
+    // 将操作添加到操作队列
     [operationQueue addOperation:blockOperation];
 
     [operationQueue addOperation:invocationOperation];
     
     [operationQueue addOperation:customOperation];
+    
+    [operationQueue addOperation:customConcurrentOperation];
 
     // 直接添加一个操作到operationQueue中
     [operationQueue addOperationWithBlock:^{
