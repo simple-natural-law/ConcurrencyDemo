@@ -71,7 +71,16 @@
         
         NSLog(@"操作 ------> 3");
     }];
+    
+    // 大致观察一下operationQueue什么时候开始执行操作
+    for (int i = 0; i < 100; i++)
+    {
+        
+    }
+    NSLog(@"==========");
 }
+
+
 
 - (void)invocationOperation
 {
