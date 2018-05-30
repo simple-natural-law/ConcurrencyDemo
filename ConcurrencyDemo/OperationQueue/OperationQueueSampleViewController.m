@@ -21,6 +21,15 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     
+    self.title = @"Operation Queue";
+    
+    self.view.backgroundColor = [UIColor whiteColor];
+}
+
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    
     // 创建一个操作队列对象
     NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];
     // 设置操作队列的最大并发数
@@ -43,7 +52,7 @@
     CustomConcurrentOperation *customConcurrentOperation = [[CustomConcurrentOperation alloc] initWithIdentifier:@"4"];
     // 设置操作的completionBlock
     [customConcurrentOperation setCompletionBlock:^{
-       
+        
         NSLog(@" =====> 操作4已完成");
     }];
     
@@ -84,7 +93,6 @@
     }
     NSLog(@"==========");
 }
-
 
 
 - (void)invocationOperation

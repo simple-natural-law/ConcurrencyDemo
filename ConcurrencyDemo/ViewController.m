@@ -23,7 +23,7 @@
     
     self.title = @"ConcurrencyDemo";
     
-    self.dataArray = @[@{@"title":@"Operation Queue",@"target":@"OperationQueueSampleViewController"}];
+    self.dataArray = @[@{@"title":@"Operation Queue",@"target":@"OperationQueueSampleViewController"},@{@"title":@"Dispatch Queue",@"target":@"DispatchQueueSampleViewController"}];
 }
 
 
@@ -51,8 +51,6 @@
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     
     UIViewController *vc = [[NSClassFromString(self.dataArray[indexPath.row][@"target"]) alloc] init];
-    
-    vc.view.backgroundColor = [UIColor whiteColor];
     
     [self.navigationController pushViewController:vc animated:YES];
 }

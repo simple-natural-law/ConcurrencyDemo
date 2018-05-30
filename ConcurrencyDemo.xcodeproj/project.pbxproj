@@ -10,6 +10,7 @@
 		1A065C9C20BE38E30053F337 /* CustomConcurrentOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A065C9920BE38E20053F337 /* CustomConcurrentOperation.m */; };
 		1A065C9D20BE38E30053F337 /* CustomOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A065C9B20BE38E20053F337 /* CustomOperation.m */; };
 		1A065CA020BE39380053F337 /* OperationQueueSampleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A065C9F20BE39380053F337 /* OperationQueueSampleViewController.m */; };
+		1A065CA420BE9CCF0053F337 /* DispatchQueueSampleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A065CA320BE9CCF0053F337 /* DispatchQueueSampleViewController.m */; };
 		1A9F32CD205A605500DB89CC /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A9F32CC205A605500DB89CC /* AppDelegate.m */; };
 		1A9F32D0205A605500DB89CC /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A9F32CF205A605500DB89CC /* ViewController.m */; };
 		1A9F32D3205A605500DB89CC /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1A9F32D1205A605500DB89CC /* Main.storyboard */; };
@@ -25,6 +26,8 @@
 		1A065C9B20BE38E20053F337 /* CustomOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CustomOperation.m; sourceTree = "<group>"; };
 		1A065C9E20BE39380053F337 /* OperationQueueSampleViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = OperationQueueSampleViewController.h; sourceTree = "<group>"; };
 		1A065C9F20BE39380053F337 /* OperationQueueSampleViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OperationQueueSampleViewController.m; sourceTree = "<group>"; };
+		1A065CA220BE9CCF0053F337 /* DispatchQueueSampleViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DispatchQueueSampleViewController.h; sourceTree = "<group>"; };
+		1A065CA320BE9CCF0053F337 /* DispatchQueueSampleViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DispatchQueueSampleViewController.m; sourceTree = "<group>"; };
 		1A9F32C8205A605400DB89CC /* ConcurrencyDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ConcurrencyDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A9F32CB205A605500DB89CC /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		1A9F32CC205A605500DB89CC /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -61,6 +64,15 @@
 			path = OperationQueue;
 			sourceTree = "<group>";
 		};
+		1A065CA120BE9CBA0053F337 /* DispatchQueue */ = {
+			isa = PBXGroup;
+			children = (
+				1A065CA220BE9CCF0053F337 /* DispatchQueueSampleViewController.h */,
+				1A065CA320BE9CCF0053F337 /* DispatchQueueSampleViewController.m */,
+			);
+			path = DispatchQueue;
+			sourceTree = "<group>";
+		};
 		1A9F32BF205A605400DB89CC = {
 			isa = PBXGroup;
 			children = (
@@ -85,6 +97,7 @@
 				1A9F32CE205A605500DB89CC /* ViewController.h */,
 				1A9F32CF205A605500DB89CC /* ViewController.m */,
 				1A065C9720BE38E20053F337 /* OperationQueue */,
+				1A065CA120BE9CBA0053F337 /* DispatchQueue */,
 				1A9F32D1205A605500DB89CC /* Main.storyboard */,
 				1A9F32D4205A605500DB89CC /* Assets.xcassets */,
 				1A9F32D6205A605500DB89CC /* LaunchScreen.storyboard */,
@@ -167,6 +180,7 @@
 			files = (
 				1A9F32D0205A605500DB89CC /* ViewController.m in Sources */,
 				1A065C9C20BE38E30053F337 /* CustomConcurrentOperation.m in Sources */,
+				1A065CA420BE9CCF0053F337 /* DispatchQueueSampleViewController.m in Sources */,
 				1A065CA020BE39380053F337 /* OperationQueueSampleViewController.m in Sources */,
 				1A9F32DB205A605500DB89CC /* main.m in Sources */,
 				1A9F32CD205A605500DB89CC /* AppDelegate.m in Sources */,
