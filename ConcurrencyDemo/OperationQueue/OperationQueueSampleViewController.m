@@ -41,6 +41,11 @@
     
     // 创建一个并发自定义操作
     CustomConcurrentOperation *customConcurrentOperation = [[CustomConcurrentOperation alloc] initWithIdentifier:@"4"];
+    // 设置操作的completionBlock
+    [customConcurrentOperation setCompletionBlock:^{
+       
+        NSLog(@" =====> 操作4已完成");
+    }];
     
     // 创建一个非并发自定义操作
     CustomOperation *customOperation = [[CustomOperation alloc] initWithIdentifier:@"5"];
