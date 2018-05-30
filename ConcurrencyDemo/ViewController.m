@@ -7,10 +7,11 @@
 //
 
 #import "ViewController.h"
-#import "CustomOperation.h"
-#import "CustomConcurrentOperation.h"
 
-@interface ViewController ()
+
+@interface ViewController ()<UITableViewDelegate,UITableViewDataSource>
+
+@property (nonatomic, strong) NSArray *dataArray;
 
 @end
 
@@ -20,66 +21,38 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    // 创建一个操作队列对象
-    NSOperationQueue *operationQueue = [[NSOperationQueue alloc] init];
-    // 设置操作队列的最大并发数
-    operationQueue.maxConcurrentOperationCount = 5;
+    self.title = @"ConcurrencyDemo";
     
-    // 创建一个NSBlockOperation
-    NSBlockOperation *blockOperation = [NSBlockOperation blockOperationWithBlock:^{
-        
-        for (int i = 0; i < 20; i++)
-        {
-            
-        }
-        
-        NSLog(@"操作 ------> 1");
-    }];
-    // 创建一个NSInvocationOperation
-    NSInvocationOperation *invocationOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperation) object:nil];
-    
-    // 创建一个并发自定义操作
-    CustomConcurrentOperation *customConcurrentOperation = [[CustomConcurrentOperation alloc] initWithIdentifier:@"4"];
-    
-    // 创建一个非并发自定义操作
-    CustomOperation *customOperation = [[CustomOperation alloc] initWithIdentifier:@"5"];
-    // 设置操作的执行优先级
-    [customOperation setQueuePriority:NSOperationQueuePriorityHigh];
-
-    // 在将操作添加到操作队列之前，配置操作依赖性，invocationOperation会等到blockOperation完成后才开始执行
-    [invocationOperation addDependency:blockOperation];
-    
-    [blockOperation addDependency:customConcurrentOperation];
-    
-    // 将操作添加到操作队列
-    [operationQueue addOperation:blockOperation];
-
-    [operationQueue addOperation:invocationOperation];
-    
-    [operationQueue addOperation:customOperation];
-    
-    [operationQueue addOperation:customConcurrentOperation];
-
-    // 直接添加一个操作到operationQueue中
-    [operationQueue addOperationWithBlock:^{
-
-        for (int i = 0; i < 20; i++)
-        {
-            
-        }
-        
-        NSLog(@"操作 ------> 3");
-    }];
+    self.dataArray = @[@{@"title":@"Operation Queue",@"target":@"OperationQueueSampleViewController"},@{@"title":@"Dispatch Queue",@"target":@"DispatchQueueSampleViewController"}];
 }
 
-- (void)invocationOperation
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    for (int i = 0; i < 20; i++)
-    {
-        
-    }
+    return self.dataArray.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
     
-    NSLog(@"操作 ------> 2");
+    cell.textLabel.text = self.dataArray[indexPath.row][@"title"];
+    
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    return 60.0;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    
+    UIViewController *vc = [[NSClassFromString(self.dataArray[indexPath.row][@"target"]) alloc] init];
+    
+    [self.navigationController pushViewController:vc animated:YES];
 }
 
 
