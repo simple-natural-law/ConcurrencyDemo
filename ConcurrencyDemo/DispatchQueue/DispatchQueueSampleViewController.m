@@ -26,6 +26,21 @@
 - (void)viewDidAppear:(BOOL)animated
 {
     [super viewDidAppear:animated];
+    
+    // 创建一个串行调度队列
+    dispatch_queue_t serialQueue = dispatch_queue_create("com.jian.queue", NULL);
+    // 异步添加任务到serialQueue
+//    dispatch_async(serialQueue, ^{
+//
+//        NSLog(@"任务 ----> 1");
+//    });
+    
+    dispatch_sync(serialQueue, ^{
+        
+        NSLog(@"任务 ----> 1");
+    });
+    
+    NSLog(@"==========");
 }
 
 
