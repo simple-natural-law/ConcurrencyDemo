@@ -27,20 +27,51 @@
 {
     [super viewDidAppear:animated];
     
-    // 创建一个串行调度队列
-    dispatch_queue_t serialQueue = dispatch_queue_create("com.jian.queue", NULL);
-    // 异步添加任务到serialQueue
-//    dispatch_async(serialQueue, ^{
-//
-//        NSLog(@"任务 ----> 1");
-//    });
+    // 创建一个串行调度队列，添加到串行调度队列的任务按照先进先出的顺序串行执行。(创建队列时，为队列指定一个名称以便调试)
+    dispatch_queue_t serialQueue = dispatch_queue_create("com.jian.serialQueue", DISPATCH_QUEUE_SERIAL);
     
-    dispatch_sync(serialQueue, ^{
-        
+    // 将任务1添加到serialQueue中，该任务相对于调用dispatch_async函数的线程异步执行。
+    dispatch_async(serialQueue, ^{
+
+        for (int i = 0; i < 100; i++)
+        {
+            
+        }
         NSLog(@"任务 ----> 1");
     });
     
-    NSLog(@"==========");
+    // 将任务2添加到serialQueue中，该任务相对于调用dispatch_sync函数的线程同步执行。
+    dispatch_sync(serialQueue, ^{
+
+        for (int i = 0; i < 20; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> 2");
+    });
+    
+    // 创建一个并行调度队列，添加到并行调度队列中的任务按照先进先出的顺序并行执行。(创建队列时，为队列指定一个名称以便调试)
+    dispatch_queue_t concurrentQueue = dispatch_queue_create("com.jian.concurrentQueue", DISPATCH_QUEUE_CONCURRENT);
+    
+    // 将任务3添加到concurrentQueue中，该任务相对于调用dispatch_sync函数的线程同步执行。
+    dispatch_sync(concurrentQueue, ^{
+        
+        for (int i = 0; i < 20; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> 3");
+    });
+    
+    // 将任务4添加到concurrentQueue中，该任务相对于调用dispatch_async函数的线程异步执行。
+    dispatch_async(concurrentQueue, ^{
+        
+        for (int i = 0; i < 100; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> 4");
+    });
 }
 
 
