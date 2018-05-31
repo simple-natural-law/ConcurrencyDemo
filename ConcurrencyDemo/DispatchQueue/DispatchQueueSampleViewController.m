@@ -29,18 +29,18 @@
     
     // 创建一个串行调度队列
     dispatch_queue_t serialQueue = dispatch_queue_create("com.jian.queue", NULL);
-    // 异步添加任务到serialQueue
-//    dispatch_async(serialQueue, ^{
-//
-//        NSLog(@"任务 ----> 1");
-//    });
     
-    dispatch_sync(serialQueue, ^{
-        
+    // 将任务1添加到serialQueue中，该任务相对于dispatch_async函数 异步 执行。
+    dispatch_async(serialQueue, ^{
+
         NSLog(@"任务 ----> 1");
     });
     
-    NSLog(@"==========");
+    // 将任务2添加到serialQueue中，该任务相对于dispatch_async函数 同步 执行。
+    dispatch_sync(serialQueue, ^{
+
+        NSLog(@"任务 ----> 2");
+    });
 }
 
 
