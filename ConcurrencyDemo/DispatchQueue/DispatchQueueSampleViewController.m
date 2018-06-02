@@ -32,7 +32,7 @@
     
     // 将任务1添加到serialQueue中，任务1会被serialQueue调度到一个新线程（并非调用dispatch_async函数的线程）上执行。dispatch_async函数是一个异步函数，其在任务1被调度到新线程之后就直接返回了。
     dispatch_async(serialQueue, ^{
-
+        
         for (int i = 0; i < 100; i++)
         {
             
@@ -40,7 +40,7 @@
         NSLog(@"任务 ----> 1");
         NSLog(@"1 ----> %@",[NSThread currentThread]);
     });
-    
+
     // 将任务2添加到serialQueue中，任务2会被serialQueue调度到调用dispatch_sync函数的线程上执行。dispatch_sync函数是一个同步函数，其会在任务2被调度到调用dispatch_sync函数的线程上并且执行完毕后才会返回。
     dispatch_sync(serialQueue, ^{
 
@@ -73,6 +73,57 @@
             
         }
         NSLog(@"任务 ----> 4");
+    });
+    
+    
+    dispatch_queue_t queue = dispatch_queue_create("com.jian.queue", DISPATCH_QUEUE_SERIAL);
+    
+    dispatch_group_t group = dispatch_group_create();
+    
+    dispatch_group_async(group, queue, ^{
+        
+        for (int i = 0; i < 20; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> a");
+    });
+    
+    dispatch_group_async(group, queue, ^{
+        
+        for (int i = 0; i < 20; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> b");
+    });
+    
+    dispatch_async(queue, ^{
+        
+        for (int i = 0; i < 20; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> d");
+    });
+    
+    dispatch_group_notify(group, queue, ^{
+        
+        NSLog(@"=========");
+        for (int i = 0; i < 100; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> c");
+    });
+    
+    dispatch_async(queue, ^{
+        
+        for (int i = 0; i < 20; i++)
+        {
+            
+        }
+        NSLog(@"任务 ----> e");
     });
 }
 
