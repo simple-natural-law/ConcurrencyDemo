@@ -906,7 +906,7 @@ dispatch_source_set_cancel_handler(mySource, ^{
 
 当计算机进入睡眠状态时，所有定时器调度源都将暂停。当计算机唤醒时，这些定时器调度源也会自定唤醒。根据定时器的配置，这种性质的暂停可能会影响定时器下次触发的时间。如果使用`dispatch_time`函数或者`DISPATCH_TIME_NOW`常量设置定时器调度源，则定时器调度源使用默认系统时钟来确定何时触发。但是，计算机进入睡眠状态时，默认时钟不会前进。相比之下，当使用`dispatch_walltime`函数设置定时器调度源时，定时器调度源将其触发时间追踪到挂钟时间。后一种选择通常适用于定时间隔相对较大的定时器，因为其可以防止事件时间之间出现太多漂移。
 
-以下代码给出了一个定时器的例子，梅30秒触发一次，误差值为1秒。由于定时器间隔相对较大，因此使用`dispatch_walltime`函数创建调度源。定时器首次触发，随后的事件每隔30秒到达一次。
+以下代码给出了一个定时器的例子，每30秒触发一次，误差值为1秒。由于定时器间隔相对较大，因此使用`dispatch_walltime`函数创建调度源。定时器首次触发，随后的事件每隔30秒到达一次。
 ```
 dispatch_source_t CreateDispatchTimer(uint64_t interval, uint64_t leeway, dispatch_queue_t queue, dispatch_block_t block)
 {
