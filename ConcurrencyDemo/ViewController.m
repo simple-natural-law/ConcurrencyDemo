@@ -23,7 +23,7 @@
     
     self.title = @"ConcurrencyDemo";
     
-    self.dataArray = @[@{@"title":@"Operation Queue",@"target":@"OperationQueueSampleViewController"},@{@"title":@"Dispatch Queue",@"target":@"DispatchQueueSampleViewController"}];
+    self.dataArray = @[@{@"title":@"Operation Queue",@"target":@"OperationQueueSampleViewController"},@{@"title":@"Dispatch Queue",@"target":@"DispatchQueueSampleViewController"},@{@"title":@"Dispatch Source",@"target":@"DispatchSourceSampleViewController"}];
 }
 
 
