@@ -1,4 +1,4 @@
-# 并发性和应用程序设计
+# 并发编程
 
 在计算机发展初期，计算机可以执行的每单位时间的最大工作量取决于CPU的频率。但随着技术进步和处理器设计变得更加紧凑，热量和其他物理约束开始限制处理器的最大频率。因此，芯片制造商寻找其他方法来提高芯片的整体性能。他们的解决方案是增加每个芯片上处理器内核的数量。通过增加内核数量，单个芯片每秒可以执行更多指令，而不会增加CPU频率或者改变芯片尺寸或热特性。唯一的问题是如何利用额外的内核。
 
@@ -35,7 +35,7 @@ Dispatch queue还有其他益处：
 
 提交给dispatch queue的任务必须封装在函数或者block对象中。block对象是OS X v10.6和iOS 4.0中引入的一种C语言特性，它在概念上类似于函数指针，但有一些额外的好处。通常在其他函数或方法中定义block，以便可以从该函数或方法访问其他变量。block也能被移出栈区并复制到堆区，这是将它们提交给dispatch queue时所发生的情况。所有这些语义都可以用较少的代码实现非常动态的任务。
 
-Dispatch queue是Grand Central Dispatch技术的一部分，是C语言运行时的一部分。有关在应用程序中使用dispatch queue的更多信息，请参看[Dispatch Queue](https://www.jianshu.com/p/4533e653d49f)。有关block及其优点的更多信息，请参看[Block编程指南](https://www.jianshu.com/p/c1c03ae5a6a5)。
+Dispatch queue是Grand Central Dispatch技术的一部分，是C语言运行时的一部分。有关在应用程序中使用dispatch queue的更多信息，请参看[Dispatch Queue](https://www.jianshu.com/p/4533e653d49f)。有关block及其优点的更多信息，请参看[Block](https://www.jianshu.com/p/c1c03ae5a6a5)。
 
 ### Dispatch Source
 
@@ -57,7 +57,7 @@ Operation Queue（操作队列）是concurrent dispatch queue的Cocoa同等技�
 
 Operation对象会生成键-值观观察（KVO）通知，这是监视任务进度的有效方法。**虽然operation queue总是并行执行操作，但可以使用依赖关系来确保在需要时它们被串行执行。**
 
-有关如何使用operation queue的更多信息以及如何自定义operation对象的更多信息，请参看[Operation Queue](https://www.jianshu.com/p/65ab102cac60)。
+有关如何使用operation queue的更多信息以及如何自定义operation对象的更多信息，请参看[NSOperation和NSOperationQueue](https://www.jianshu.com/p/65ab102cac60)。
 
 ## 异步设计技术
 
@@ -223,7 +223,7 @@ NSBlockOperation* theOp = [NSBlockOperation blockOperationWithBlock: ^{
 
 - (id)initWithData:(id)data {
     if (self = [super init])
-    myData = data;
+        myData = data;
     return self;
 }
 
@@ -360,16 +360,16 @@ BOOL        finished;
 ```
 即使操作被取消，也应该始终通知KVO观察者操作对象现在已完成其工作。当操作对象依赖于其他操作对象的完成时，它会监听这些对象的`isFinished`键路径。只有当所有的对象都报告它们已经完成时，才会执行相关的操作信号，表明它已准备好运行。生成完成通知失败，可能会因此阻止应用程序中其他操作的执行。
 
-### 保持KVO兼容
+### 兼容KVO
 
 `NSOperation`类兼容了对以下键路径的键-值观察（KVO）：
-- isCancelled
-- isConcurrent
-- isExecuting
-- isReady
-- dependencies
-- queuePriority
-- completionBlock
+- `isCancelled`
+- `isConcurrent`
+- `isExecuting`
+- `isReady`
+- `dependencies`
+- `queuePriority`
+- `completionBlock`
 
 如果覆写`start`方法或者对`NSOperation`对象进行除了重写`main`方法之外的任何重要定制，则必须确保定制对象对这些键路径保持KVO兼容。当覆写`start`方法时，最应该考虑的键路径应该是`isExecuting`和`isFinished`，这些是重新实现该方法时最常受影响的键路径。
 
